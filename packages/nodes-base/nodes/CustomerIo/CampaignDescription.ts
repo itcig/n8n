@@ -18,8 +18,24 @@ export const campaignOperations = [
 				value: 'get',
 			},
 			{
+				name: 'Get Action',
+				value: 'getAction',
+			},
+			{
+				name: 'Get Actions',
+				value: 'getActions',
+			},
+			{
 				name: 'Get All',
 				value: 'getAll',
+			},
+			{
+				name: 'Get Links',
+				value: 'getLinks',
+			},
+			{
+				name: 'Get Link Metrics',
+				value: 'getLinkMetrics',
 			},
 			{
 				name: 'Get Metrics',
@@ -52,6 +68,107 @@ export const campaignFields = [
 			},
 		},
 		description: 'The unique identifier for the campaign',
+	},
+	/* -------------------------------------------------------------------------- */
+	/*                              campaign:getActions                           */
+	/* -------------------------------------------------------------------------- */
+	{
+		displayName: 'Campaign ID',
+		name: 'campaignId',
+		type: 'number',
+		required: true,
+		default: 0,
+		displayOptions: {
+			show: {
+				resource: [
+					'campaign',
+				],
+				operation: [
+					'getActions',
+				],
+			},
+		},
+		description: 'The unique identifier for the campaign',
+	},
+	/* -------------------------------------------------------------------------- */
+	/*                       campaign:getCampaignActions                          */
+	/* -------------------------------------------------------------------------- */
+	{
+		displayName: 'Campaign ID',
+		name: 'campaignId',
+		type: 'number',
+		required: true,
+		default: 0,
+		displayOptions: {
+			show: {
+				resource: [
+					'campaign',
+				],
+				operation: [
+					'getAction',
+				],
+			},
+		},
+		description: 'The unique identifier for the campaign',
+	},
+	{
+		displayName: 'Action ID',
+		name: 'actionId',
+		type: 'number',
+		required: true,
+		default: 0,
+		displayOptions: {
+			show: {
+				resource: [
+					'campaign',
+				],
+				operation: [
+					'getAction',
+				],
+			},
+		},
+		description: 'The unique identifier for the action',
+	},
+	/* -------------------------------------------------------------------------- */
+	/*                            campaign:getLink/Metrics                         */
+	/* -------------------------------------------------------------------------- */
+	{
+		displayName: 'Campaign ID',
+		name: 'campaignId',
+		type: 'number',
+		required: true,
+		default: 0,
+		displayOptions: {
+			show: {
+				resource: [
+					'campaign',
+				],
+				operation: [
+					'getLinks',
+					'getLinkMetrics',
+				],
+			},
+		},
+		description: 'The unique identifier for the campaign',
+	},
+	{
+		displayName: 'Action ID',
+		name: 'actionId',
+		type: 'number',
+		required: true,
+		default: 0,
+		displayOptions: {
+			show: {
+				resource: [
+					'campaign',
+				],
+				operation: [
+					'getLinks',
+					'getLinkMetrics',
+				],
+			},
+		},
+		description: 'The unique identifier for the action',
 	},
 	/* -------------------------------------------------------------------------- */
 	/*                                   campaign:getMetrics                      */

@@ -12,6 +12,10 @@ import {
 	validateJSON,
 } from './GenericFunctions';
 import {
+	broadcastFields,
+	broadcastOperations,
+} from './BroadcastDescription';
+import {
 	campaignFields,
 	campaignOperations,
 } from './CampaignDescription';
@@ -23,6 +27,14 @@ import {
 	eventFields,
 	eventOperations,
 } from './EventDescription';
+import {
+	messageFields,
+	messageOperations,
+} from './MessageDescription';
+import {
+	newsletterFields,
+	newsletterOperations,
+} from './NewsletterDescription';
 import {
 	segmentFields,
 	segmentOperations,
@@ -57,6 +69,10 @@ export class CustomerIo implements INodeType {
 				type: 'options',
 				options: [
 					{
+						name: 'Broadcast',
+						value: 'broadcast',
+					},
+					{
 						name: 'Customer',
 						value: 'customer',
 					},
@@ -69,6 +85,14 @@ export class CustomerIo implements INodeType {
 						value: 'campaign',
 					},
 					{
+						name: 'Message',
+						value: 'message',
+					},
+					{
+						name: 'Newsletter',
+						value: 'newsletter',
+					},
+					{
 						name: 'Segment',
 						value: 'segment',
 					},
@@ -76,6 +100,9 @@ export class CustomerIo implements INodeType {
 				default: 'customer',
 				description: 'Resource to consume.',
 			},
+			// BROADCAST
+			...broadcastOperations,
+			...broadcastFields,
 			// CAMPAIGN
 			...campaignOperations,
 			...campaignFields,
@@ -85,6 +112,12 @@ export class CustomerIo implements INodeType {
 			// EVENT
 			...eventOperations,
 			...eventFields,
+			// MESSAGE
+			...messageOperations,
+			...messageFields,
+			// NEWSLETTER
+			...newsletterOperations,
+			...newsletterFields,
 			// SEGMENT
 			...segmentOperations,
 			...segmentFields,
@@ -101,6 +134,110 @@ export class CustomerIo implements INodeType {
 		let responseData;
 		for (let i = 0; i < items.length; i++) {
 
+			if (resource === 'broadcast') {
+				if (operation === 'get') {
+					const broadcastId = this.getNodeParameter('broadcastId', i) as number;
+					const endpoint = `/broadcasts/${broadcastId}`;
+
+					responseData = await customerIoApiRequest.call(this, 'GET', endpoint, body, 'beta');
+					responseData = responseData.broadcast;
+				}
+
+				if (operation === 'getAction') {
+					const broadcastId = this.getNodeParameter('broadcastId', i) as number;
+					const actionId = this.getNodeParameter('actionId', i) as number;
+					const endpoint = `/broadcasts/${broadcastId}/actions/${actionId}`;
+
+					responseData = await customerIoApiRequest.call(this, 'GET', endpoint, body, 'beta');
+					responseData = responseData.action;
+				}
+
+				if (operation === 'getActions') {
+					const broadcastId = this.getNodeParameter('broadcastId', i) as number;
+					const endpoint = `/broadcasts/${broadcastId}/actions`;
+
+					responseData = await customerIoApiRequest.call(this, 'GET', endpoint, body, 'beta');
+					responseData = responseData.actions;
+				}
+
+				if (operation === 'getAll') {
+					const endpoint = `/broadcasts`;
+
+					responseData = await customerIoApiRequest.call(this, 'GET', endpoint, body, 'beta');
+					responseData = responseData.broadcasts;
+				}
+
+				if (operation === 'getLinks') {
+					const broadcastId = this.getNodeParameter('broadcastId', i) as number;
+					const actionId = this.getNodeParameter('actionId', i) as number;
+					const endpoint = `/broadcasts/${broadcastId}/actions/${actionId}/metrics/links`;
+
+					responseData = await customerIoApiRequest.call(this, 'GET', endpoint, body, 'beta');
+
+					const enrichedData = [];
+					for (const item of responseData.links) {
+						enrichedData.push({
+							id: item.link && item.link.id,
+							url: item.link && item.link.href,
+							broadcast_id: broadcastId,
+							action_id: actionId,	
+						});
+					} 
+
+					responseData = enrichedData;
+				}
+
+				if (operation === 'getLinkMetrics') {
+					const broadcastId = this.getNodeParameter('broadcastId', i) as number;
+					const actionId = this.getNodeParameter('actionId', i) as number;
+					const endpoint = `/broadcasts/${broadcastId}/actions/${actionId}/metrics/links`;
+
+					responseData = await customerIoApiRequest.call(this, 'GET', endpoint, body, 'beta');
+					responseData = responseData.links;
+				}
+
+				if (operation === 'getMetrics') {
+					const broadcastId = this.getNodeParameter('broadcastId', i) as number;
+					const jsonParameters = this.getNodeParameter('jsonParameters', i) as boolean;
+
+					if (jsonParameters) {
+						const additionalFieldsJson = this.getNodeParameter('additionalFieldsJson', i) as string;
+
+						if (additionalFieldsJson !== '') {
+
+							if (validateJSON(additionalFieldsJson) !== undefined) {
+
+								Object.assign(body, JSON.parse(additionalFieldsJson));
+
+							} else {
+								throw new Error('Additional fields must be a valid JSON');
+							}
+						}
+					} else {
+						const additionalFields = this.getNodeParameter('additionalFields', i) as IDataObject;
+						const period = this.getNodeParameter('period', i) as string;
+						let endpoint = `/broadcasts/${broadcastId}/metrics`;
+
+						if (period !== 'days') {
+							endpoint = `${endpoint}?period=${period}`;
+						}
+						if (additionalFields.steps) {
+							body.steps = additionalFields.steps as number;
+						}
+						if (additionalFields.type) {
+							if (additionalFields.type === 'urbanAirship') {
+								additionalFields.type = 'urban_airship';
+							} else {
+								body.type = additionalFields.type as string;
+							}
+						}
+
+						responseData = await customerIoApiRequest.call(this, 'GET', endpoint, body, 'beta');
+						responseData = responseData.metric;
+					}
+				}
+			}
+
 			if (resource === 'campaign') {
 				if (operation === 'get') {
 					const campaignId = this.getNodeParameter('campaignId', i) as number;
@@ -110,11 +247,57 @@ export class CustomerIo implements INodeType {
 					responseData = responseData.campaign;
 				}
 
+				if (operation === 'getAction') {
+					const campaignId = this.getNodeParameter('campaignId', i) as number;
+					const actionId = this.getNodeParameter('actionId', i) as number;
+					const endpoint = `/campaigns/${campaignId}/actions/${actionId}`;
+
+					responseData = await customerIoApiRequest.call(this, 'GET', endpoint, body, 'beta');
+					responseData = responseData.action;
+				}
+
+				if (operation === 'getActions') {
+					const campaignId = this.getNodeParameter('campaignId', i) as number;
+					const endpoint = `/campaigns/${campaignId}/actions`;
+
+					responseData = await customerIoApiRequest.call(this, 'GET', endpoint, body, 'beta');
+					responseData = responseData.actions;
+				}
+
 				if (operation === 'getAll') {
 					const endpoint = `/campaigns`;
 
 					responseData = await customerIoApiRequest.call(this, 'GET', endpoint, body, 'beta');
 					responseData = responseData.campaigns;
+				}
+
+				if (operation === 'getLinks') {
+					const campaignId = this.getNodeParameter('campaignId', i) as number;
+					const actionId = this.getNodeParameter('actionId', i) as number;
+					const endpoint = `/campaigns/${campaignId}/actions/${actionId}/metrics/links`;
+
+					responseData = await customerIoApiRequest.call(this, 'GET', endpoint, body, 'beta');
+
+					const enrichedData = [];
+					for (const item of responseData.links) {
+						enrichedData.push({
+							id: item.link && item.link.id,
+							url: item.link && item.link.href,
+							campaign_id: campaignId,
+							action_id: actionId,
+						});
+					} 
+
+					responseData = enrichedData;
+				}
+
+				if (operation === 'getLinkMetrics') {					
+					const campaignId = this.getNodeParameter('campaignId', i) as number;
+					const actionId = this.getNodeParameter('actionId', i) as number;
+					const endpoint = `/campaigns/${campaignId}/actions/${actionId}/metrics/links`;
+
+					responseData = await customerIoApiRequest.call(this, 'GET', endpoint, body, 'beta');
+					responseData = responseData.links;
 				}
 
 				if (operation === 'getMetrics') {
@@ -305,6 +488,119 @@ export class CustomerIo implements INodeType {
 					responseData = {
 						success: true,
 					};
+				}
+			}
+
+			if (resource === 'message') {
+				if (operation === 'get') {
+					const messageId = this.getNodeParameter('messageId', i) as number;
+					const endpoint = `/messages/${messageId}`;
+
+					responseData = await customerIoApiRequest.call(this, 'GET', endpoint, body, 'beta');
+					responseData = responseData.message;
+				}
+
+				if (operation === 'getAll') {
+					const endpoint = `/messages`;
+
+					responseData = await customerIoApiRequest.call(this, 'GET', endpoint, body, 'beta');
+					responseData = responseData.messages;
+				}
+			}
+
+			if (resource === 'newsletter') {
+				if (operation === 'get') {
+					const newsletterId = this.getNodeParameter('newsletterId', i) as number;
+					const endpoint = `/newsletters/${newsletterId}`;
+			
+					responseData = await customerIoApiRequest.call(this, 'GET', endpoint, body, 'beta');
+					responseData = responseData.newsletter;
+				}
+			
+				if (operation === 'getAll') {
+					const endpoint = `/newsletters`;
+			
+					responseData = await customerIoApiRequest.call(this, 'GET', endpoint, body, 'beta');
+					responseData = responseData.newsletters;
+				}
+
+				if (operation === 'getContent') {
+					const newsletterId = this.getNodeParameter('newsletterId', i) as number;
+					const contentId = this.getNodeParameter('contentId', i) as number;
+					const endpoint = `/newsletters/${newsletterId}/contents/${contentId}`;
+			
+					responseData = await customerIoApiRequest.call(this, 'GET', endpoint, body, 'beta');
+					responseData = responseData.content;
+				}
+
+				if (operation === 'getContentLinks') {
+					const newsletterId = this.getNodeParameter('newsletterId', i) as number;
+					const contentId = this.getNodeParameter('contentId', i) as number;
+					const endpoint = `/newsletters/${newsletterId}/contents/${contentId}/metrics/links`;
+
+					responseData = await customerIoApiRequest.call(this, 'GET', endpoint, body, 'beta');
+
+					const enrichedData = [];
+					for (const item of responseData.links) {
+						enrichedData.push({
+							id: item.link && item.link.id,
+							url: item.link && item.link.href,
+							newsletter_id: newsletterId,
+							content_id: contentId,
+						});
+					} 
+
+					responseData = enrichedData;
+				}
+
+				if (operation === 'getContentLinkMetrics') {
+					const newsletterId = this.getNodeParameter('newsletterId', i) as number;
+					const contentId = this.getNodeParameter('contentId', i) as number;
+					const endpoint = `/newsletters/${newsletterId}/contents/${contentId}/metrics/links`;
+
+					responseData = await customerIoApiRequest.call(this, 'GET', endpoint, body, 'beta');
+					responseData = responseData.links;
+				}
+			
+				if (operation === 'getMetrics') {
+					const newsletterId = this.getNodeParameter('newsletterId', i) as number;
+					const jsonParameters = this.getNodeParameter('jsonParameters', i) as boolean;
+			
+					if (jsonParameters) {
+						const additionalFieldsJson = this.getNodeParameter('additionalFieldsJson', i) as string;
+			
+						if (additionalFieldsJson !== '') {
+			
+							if (validateJSON(additionalFieldsJson) !== undefined) {
+			
+								Object.assign(body, JSON.parse(additionalFieldsJson));
+			
+							} else {
+								throw new Error('Additional fields must be a valid JSON');
+							}
+						}
+					} else {
+						const additionalFields = this.getNodeParameter('additionalFields', i) as IDataObject;
+						const period = this.getNodeParameter('period', i) as string;
+						let endpoint = `/newsletters/${newsletterId}/metrics`;
+			
+						if (period !== 'days') {
+							endpoint = `${endpoint}?period=${period}`;
+						}
+						if (additionalFields.steps) {
+							body.steps = additionalFields.steps as number;
+						}
+						if (additionalFields.type) {
+							if (additionalFields.type === 'urbanAirship') {
+								additionalFields.type = 'urban_airship';
+							} else {
+								body.type = additionalFields.type as string;
+							}
+						}
+			
+						responseData = await customerIoApiRequest.call(this, 'GET', endpoint, body, 'beta');
+						responseData = responseData.metric;
+					}
 				}
 			}
 
